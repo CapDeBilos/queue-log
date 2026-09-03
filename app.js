@@ -22,8 +22,8 @@ import {
 // The fixed list of places this is used for. Edit this list — it's the
 // only thing you need to change to add or rename a place.
 const PRESET_LOCATIONS = [
-  "CROUS Versailles'",
-  "CROUS l'Experimental'",
+  "CROUS Versailles",
+  "CROUS l'Experimental",
 ];
 
 const FIREBASE_CONFIG = {
