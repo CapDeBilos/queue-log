@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#22303C">
+<title>Queue log</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #EDE7DA;
+    --paper-dim: #E2DBC9;
+    --paper-line: #CFC6AE;
+    --ink: #22303C;
+    --ink-soft: #4C5C68;
+    --ink-faint: #8496A0;
+    --amber: #B8862B;
+    --amber-dark: #8F6A22;
+    --storm: #2C4A6E;
+    --brick: #8C3B2E;
+    --moss: #5C7A5C;
+    --radius-dial: 999px;
+    --font-ui: 'Space Grotesk', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --font-num: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--font-ui);
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: flex;
+    justify-content: center;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+
+  #app {
+    width: 100%;
+    max-width: 440px;
+    padding: 28px 22px 40px;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+
+  /* ---------- header ---------- */
+
+  .app-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+
+  .wordmark {
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    margin: 0;
+  }
+
+  .who {
+    font-size: 13px;
+    color: var(--ink-soft);
+    margin: 2px 0 0;
+  }
+
+  .who button {
+    background: none;
+    border: none;
+    color: var(--storm);
+    font: inherit;
+    font-size: 12px;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    padding: 0;
+    cursor: pointer;
+  }
+
+  .rule {
+    border: none;
+    border-top: 1px solid var(--paper-line);
+    margin: 18px 0;
+  }
+
+  /* ---------- location ---------- */
+
+  .field-label {
+    display: block;
+    font-size: 13px;
+    color: var(--ink-soft);
+    margin-bottom: 6px;
+  }
+
+  select, input[type="text"], textarea {
+    width: 100%;
+    font-family: var(--font-ui);
+    font-size: 16px;
+    color: var(--ink);
+    background: var(--paper-dim);
+    border: 1px solid var(--paper-line);
+    border-radius: 10px;
+    padding: 12px 14px;
+    appearance: none;
+  }
+
+  select:focus, input:focus, textarea:focus {
+    outline: 2px solid var(--storm);
+    outline-offset: 1px;
+  }
+
+  .select-wrap {
+    position: relative;
+  }
+
+  .select-wrap::after {
+    content: "▾";
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--ink-soft);
+    pointer-events: none;
+  }
+
+  .new-place-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+  }
+
+  .new-place-row input { flex: 1; }
+
+  .btn-small {
+    font-family: var(--font-ui);
+    font-size: 14px;
+    font-weight: 600;
+    background: var(--ink);
+    color: var(--paper);
+    border: none;
+    border-radius: 10px;
+    padding: 0 16px;
+    cursor: pointer;
+  }
+
+  /* ---------- dial ---------- */
+
+  .dial-zone {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 34px 0 10px;
+  }
+
+  .dial {
+    width: 208px;
+    height: 208px;
+    border-radius: var(--radius-dial);
+    border: 3px solid var(--ink);
+    background: var(--paper-dim);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    cursor: pointer;
+    transition: background 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
+    position: relative;
+  }
+
+  .dial:active { transform: scale(0.97); }
+
+  .dial.running {
+    background: var(--amber);
+    border-color: var(--amber-dark);
+  }
+
+  .dial-time {
+    font-family: var(--font-num);
+    font-size: 40px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    color: var(--ink);
+  }
+
+  .dial.running .dial-time { color: var(--paper); }
+
+  .dial-label {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--ink-soft);
+    letter-spacing: 0.02em;
+  }
+
+  .dial.running .dial-label { color: rgba(34,48,60,0.75); }
+
+  .dial-hint {
+    margin-top: 16px;
+    font-size: 13px;
+    color: var(--ink-faint);
+    text-align: center;
+  }
+
+  /* ---------- details form (after stop) ---------- */
+
+  .details {
+    margin-top: 26px;
+    animation: rise 0.28s ease;
+  }
+
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .details-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--paper-line);
+  }
+
+  .details-row .k { font-size: 14px; color: var(--ink-soft); }
+  .details-row .v {
+    font-family: var(--font-num);
+    font-size: 15px;
+    font-weight: 600;
+  }
+
+  #tempValue { cursor: pointer; }
+
+  .chip-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin: 10px 0 4px;
+  }
+
+  .chip {
+    font-family: var(--font-ui);
+    font-size: 14px;
+    padding: 8px 14px;
+    border-radius: 999px;
+    border: 1px solid var(--paper-line);
+    background: var(--paper-dim);
+    color: var(--ink-soft);
+    cursor: pointer;
+  }
+
+  .chip.on {
+    background: var(--storm);
+    border-color: var(--storm);
+    color: var(--paper);
+  }
+
+  .auto-tag {
+    font-size: 11px;
+    color: var(--ink-faint);
+    margin-left: 6px;
+  }
+
+  .note-toggle {
+    background: none;
+    border: none;
+    color: var(--storm);
+    font-family: var(--font-ui);
+    font-size: 14px;
+    padding: 10px 0 0;
+    cursor: pointer;
+    text-align: left;
+  }
+
+  textarea {
+    margin-top: 8px;
+    resize: vertical;
+    min-height: 60px;
+  }
+
+  .save-btn {
+    width: 100%;
+    margin-top: 22px;
+    font-family: var(--font-ui);
+    font-size: 16px;
+    font-weight: 700;
+    background: var(--amber);
+    color: var(--ink);
+    border: none;
+    border-radius: 12px;
+    padding: 16px;
+    cursor: pointer;
+  }
+
+  .save-btn:disabled { opacity: 0.55; cursor: default; }
+
+  .status-line {
+    margin-top: 10px;
+    font-size: 13px;
+    text-align: center;
+    min-height: 18px;
+    color: var(--ink-soft);
+  }
+
+  .status-line.ok { color: var(--moss); }
+  .status-line.err { color: var(--brick); }
+
+  /* ---------- footer nav ---------- */
+
+  .footer-nav {
+    margin-top: auto;
+    padding-top: 24px;
+    text-align: center;
+  }
+
+  .footer-nav button {
+    background: none;
+    border: none;
+    color: var(--storm);
+    font-family: var(--font-ui);
+    font-size: 14px;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    cursor: pointer;
+  }
+
+  /* ---------- history (ledger) ---------- */
+
+  .history-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 6px;
+  }
+
+  .back-btn {
+    background: none;
+    border: none;
+    font-size: 20px;
+    color: var(--ink);
+    cursor: pointer;
+    line-height: 1;
+    padding: 4px;
+  }
+
+  .ledger-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--paper-line);
+  }
+
+  .ledger-main { display: flex; flex-direction: column; gap: 2px; }
+  .ledger-place { font-size: 15px; font-weight: 600; }
+  .ledger-meta { font-size: 12px; color: var(--ink-soft); }
+  .ledger-duration {
+    font-family: var(--font-num);
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--storm);
+  }
+
+  .empty-state {
+    padding: 30px 0;
+    text-align: center;
+    color: var(--ink-faint);
+    font-size: 14px;
+  }
+
+  .export-btn {
+    margin-top: 18px;
+    width: 100%;
+    background: none;
+    border: 1px solid var(--ink);
+    color: var(--ink);
+    font-family: var(--font-ui);
+    font-weight: 600;
+    font-size: 14px;
+    border-radius: 10px;
+    padding: 12px;
+    cursor: pointer;
+  }
+
+  /* ---------- username modal ---------- */
+
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(34,48,60,0.55);
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    z-index: 10;
+  }
+
+  .modal-sheet {
+    width: 100%;
+    max-width: 440px;
+    background: var(--paper);
+    border-radius: 18px 18px 0 0;
+    padding: 26px 22px calc(26px + env(safe-area-inset-bottom));
+  }
+
+  .modal-sheet h2 {
+    font-size: 18px;
+    margin: 0 0 6px;
+  }
+
+  .modal-sheet p {
+    font-size: 14px;
+    color: var(--ink-soft);
+    margin: 0 0 16px;
+  }
+
+  .modal-sheet .save-btn { margin-top: 14px; }
+
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+
+<div id="app">
+
+  <header class="app-header">
+    <div>
+      <p class="wordmark">Queue log</p>
+      <p class="who">Logged in as <strong id="whoName">—</strong> · <button id="changeNameBtn" type="button">change</button></p>
+    </div>
+  </header>
+
+  <p class="status-line err" id="connStatus" hidden></p>
+
+  <hr class="rule">
+
+  <!-- MAIN (log) VIEW -->
+  <section id="view-log">
+
+    <label class="field-label" for="locationSelect">Place</label>
+    <div class="select-wrap">
+      <select id="locationSelect"></select>
+    </div>
+
+    <div class="dial-zone">
+      <button class="dial" id="dialBtn" type="button">
+        <span class="dial-time" id="dialTime">0:00</span>
+        <span class="dial-label" id="dialLabel">Start</span>
+      </button>
+      <p class="dial-hint" id="dialHint">Tap when you join the queue</p>
+    </div>
+
+    <!-- Details form, revealed after Stop -->
+    <div class="details" id="details" hidden>
+      <div class="details-row">
+        <span class="k">Waited</span>
+        <span class="v" id="waitedValue">0:00</span>
+      </div>
+      <div class="details-row">
+        <span class="k">Temperature</span>
+        <span class="v" id="tempValue">—<span class="auto-tag">auto</span></span>
+      </div>
+
+      <label class="field-label" style="margin-top:16px;">Rain</label>
+      <div class="chip-row" id="rainChips">
+        <button class="chip" data-val="none" type="button">None</button>
+        <button class="chip" data-val="mild" type="button">Mild</button>
+        <button class="chip" data-val="heavy" type="button">Heavy</button>
+      </div>
+
+      <div class="chip-row">
+        <button class="chip" id="snowChip" type="button">Snow</button>
+        <button class="chip" id="fogChip" type="button">Fog</button>
+      </div>
+
+      <button class="note-toggle" id="noteToggle" type="button">+ add a note</button>
+      <textarea id="notesInput" placeholder="Optional note" hidden></textarea>
+
+      <button class="save-btn" id="saveBtn" type="button">Save entry</button>
+      <p class="status-line" id="statusLine"></p>
+    </div>
+
+    <div class="footer-nav">
+      <button id="historyLink" type="button">Recent entries</button>
+    </div>
+  </section>
+
+  <!-- HISTORY VIEW -->
+  <section id="view-history" hidden>
+    <div class="history-header">
+      <button class="back-btn" id="backBtn" type="button" aria-label="Back">←</button>
+      <p class="wordmark" style="font-size:17px;">Recent entries</p>
+    </div>
+    <div id="ledgerList"></div>
+    <button class="export-btn" id="exportBtn" type="button">Export CSV</button>
+  </section>
+
+</div>
+
+<!-- Username modal -->
+<div class="modal-backdrop" id="nameModal" hidden>
+  <div class="modal-sheet">
+    <h2>What's your name?</h2>
+    <p>Saved on this phone so you won't be asked again.</p>
+    <input type="text" id="nameInput" placeholder="e.g. Badea">
+    <button class="save-btn" id="nameSaveBtn" type="button">Continue</button>
+  </div>
+</div>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>
