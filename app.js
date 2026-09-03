@@ -428,7 +428,7 @@ async function loadHistory() {
     return;
   }
   try {
-    const q = query(collection(db, "queueEvents"), orderBy("startTime", "desc"), limit(50));
+    const q = query(collection(db, "queueEvents"), orderBy("startTime", "desc")); // limit(50)
     const snap = await getDocs(q);
     lastLoadedEntries = snap.docs.map((d) => d.data());
     renderLedger(lastLoadedEntries);
