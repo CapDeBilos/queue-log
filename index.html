@@ -439,7 +439,7 @@
   <header class="app-header">
     <div>
       <p class="wordmark">Queue log</p>
-      <p class="who">Logged in as <strong id="whoName">—</strong> · <button id="changeNameBtn" type="button">change</button></p>
+      <p class="who">Logged in as <strong id="whoName">—</strong> <span id="whoInstitution"></span> · <button id="changeNameBtn" type="button">change</button></p>
     </div>
   </header>
 
@@ -510,12 +510,19 @@
 
 </div>
 
-<!-- Username modal -->
+<!-- Registration modal -->
 <div class="modal-backdrop" id="nameModal" hidden>
   <div class="modal-sheet">
-    <h2>What's your name?</h2>
+    <h2>What's your full name?</h2>
     <p>Saved on this phone so you won't be asked again.</p>
-    <input type="text" id="nameInput" placeholder="e.g. Badea">
+    <input type="text" id="nameInput" placeholder="John Doe">
+
+    <label class="field-label" style="margin-top:16px;" for="institutionSelect">Institution</label>
+    <div class="select-wrap">
+      <select id="institutionSelect"></select>
+    </div>
+
+    <p class="status-line err" id="nameError" hidden></p>
     <button class="save-btn" id="nameSaveBtn" type="button">Continue</button>
   </div>
 </div>

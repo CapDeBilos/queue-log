@@ -30,6 +30,16 @@ const PRESET_LOCATIONS = [
   { name: "CROUS l'Experimental", lat: 48.714001, lon: 2.195787 },
 ];
 
+// The list offered in the institution dropdown at registration. Edit this
+// to match your actual list — it's the only thing to change.
+const PRESET_INSTITUTIONS = [
+  "Ecole Polytechnique",
+  "ENSTA",
+  "ENSAE",
+  "Telecom Paris",
+  "Telecom SudParis",
+];
+
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyAzWaEr2plOZNazeMBTaP0QX3FmJ18mST8",
   authDomain: "queue-log.firebaseapp.com",
@@ -40,6 +50,7 @@ const FIREBASE_CONFIG = {
 };
 
 const LS_USERNAME = "ql_username";
+const LS_INSTITUTION = "ql_institution";
 const LS_LAST_PLACE = "ql_last_place";
 
 // ---------------------------------------------------------------------------
@@ -116,9 +127,12 @@ function showConfigWarning() {
 // ---------------------------------------------------------------------------
 
 const whoName = document.getElementById("whoName");
+const whoInstitution = document.getElementById("whoInstitution");
 const changeNameBtn = document.getElementById("changeNameBtn");
 const nameModal = document.getElementById("nameModal");
 const nameInput = document.getElementById("nameInput");
+const institutionSelect = document.getElementById("institutionSelect");
+const nameError = document.getElementById("nameError");
 const nameSaveBtn = document.getElementById("nameSaveBtn");
 
 const locationSelect = document.getElementById("locationSelect");
@@ -148,19 +162,40 @@ const ledgerList = document.getElementById("ledgerList");
 const exportBtn = document.getElementById("exportBtn");
 
 // ---------------------------------------------------------------------------
-// Username (persisted on-device; no password, no repeated login)
+// Registration: full name + institution (persisted on-device; no password,
+// no repeated login)
 // ---------------------------------------------------------------------------
 
 function getUsername() {
   return localStorage.getItem(LS_USERNAME) || "";
 }
 
-function ensureUsername() {
-  const existing = getUsername();
-  if (existing) {
-    whoName.textContent = existing;
+function getInstitution() {
+  return localStorage.getItem(LS_INSTITUTION) || "";
+}
+
+function initInstitutions() {
+  institutionSelect.innerHTML = "";
+  PRESET_INSTITUTIONS.forEach((name) => {
+    const opt = document.createElement("option");
+    opt.value = name;
+    opt.textContent = name;
+    institutionSelect.appendChild(opt);
+  });
+}
+
+function ensureProfile() {
+  const existingName = getUsername();
+  const existingInst = getInstitution();
+
+  if (existingName && existingInst) {
+    whoName.textContent = existingName;
+    whoInstitution.textContent = "· " + existingInst;
     nameModal.hidden = true;
   } else {
+    nameInput.value = existingName;
+    if (existingInst) institutionSelect.value = existingInst;
+    nameError.hidden = true;
     nameModal.hidden = false;
     nameInput.focus();
   }
@@ -168,14 +203,26 @@ function ensureUsername() {
 
 nameSaveBtn.addEventListener("click", () => {
   const val = nameInput.value.trim();
-  if (!val) return;
+  const inst = institutionSelect.value;
+
+  if (!val || !inst) {
+    nameError.textContent = "Please enter your name and pick an institution.";
+    nameError.hidden = false;
+    return;
+  }
+
   localStorage.setItem(LS_USERNAME, val);
+  localStorage.setItem(LS_INSTITUTION, inst);
   whoName.textContent = val;
+  whoInstitution.textContent = "· " + inst;
+  nameError.hidden = true;
   nameModal.hidden = true;
 });
 
 changeNameBtn.addEventListener("click", () => {
   nameInput.value = getUsername();
+  institutionSelect.value = getInstitution();
+  nameError.hidden = true;
   nameModal.hidden = false;
   nameInput.focus();
 });
@@ -369,6 +416,7 @@ saveBtn.addEventListener("click", async () => {
   const payload = {
     userId: currentUid,
     username: getUsername(),
+    institution: getInstitution(),
     locationName: place,
     startTime: start.toISOString(),
     endTime: new Date(endTime).toISOString(),
@@ -428,7 +476,7 @@ async function loadHistory() {
     return;
   }
   try {
-    const q = query(collection(db, "queueEvents"), orderBy("startTime", "desc")); // limit(50)
+    const q = query(collection(db, "queueEvents"), orderBy("startTime", "desc"));
     const snap = await getDocs(q);
     lastLoadedEntries = snap.docs.map((d) => d.data());
     renderLedger(lastLoadedEntries);
@@ -452,7 +500,7 @@ function renderLedger(entries) {
     row.innerHTML = `
       <div class="ledger-main">
         <span class="ledger-place">${escapeHtml(e.locationName || "—")}</span>
-        <span class="ledger-meta">${dateStr}, ${timeStr} · ${escapeHtml(e.username || "")}</span>
+        <span class="ledger-meta">${dateStr}, ${timeStr} · ${escapeHtml(e.username || "")}${e.institution ? " · " + escapeHtml(e.institution) : ""}</span>
       </div>
       <span class="ledger-duration">${formatDuration(e.waitDurationSeconds || 0)}</span>
     `;
@@ -469,11 +517,11 @@ function escapeHtml(str) {
 exportBtn.addEventListener("click", () => {
   if (lastLoadedEntries.length === 0) return;
   const cols = [
-    "username", "locationName", "startTime", "endTime", "waitDurationSeconds",
+    "username", "institution", "locationName", "startTime", "endTime", "waitDurationSeconds",
     "temperatureC", "rain", "snow", "fog", "dayOfWeek", "hourOfDay", "notes",
   ];
   const rows = lastLoadedEntries.map((e) => [
-    e.username, e.locationName, e.startTime, e.endTime, e.waitDurationSeconds,
+    e.username, e.institution, e.locationName, e.startTime, e.endTime, e.waitDurationSeconds,
     e.temperatureC, e.weather?.rain, e.weather?.snow, e.weather?.fog,
     e.dayOfWeek, e.hourOfDay, (e.notes || "").replace(/[\r\n]+/g, " "),
   ]);
@@ -529,7 +577,8 @@ function updateOfflineNote() {
 window.addEventListener("online", updateOfflineNote);
 window.addEventListener("offline", updateOfflineNote);
 
-ensureUsername();
+initInstitutions();
+ensureProfile();
 initLocations();
 initFirebase();
 updateOfflineNote();
