@@ -152,6 +152,7 @@ const fogChip = document.getElementById("fogChip");
 const noteToggle = document.getElementById("noteToggle");
 const notesInput = document.getElementById("notesInput");
 const saveBtn = document.getElementById("saveBtn");
+const discardBtn = document.getElementById("discardBtn");
 const statusLine = document.getElementById("statusLine");
 
 const historyLink = document.getElementById("historyLink");
@@ -402,6 +403,11 @@ function setStatus(el, text, kind) {
   el.textContent = text;
   el.className = "status-line" + (kind ? " " + kind : "");
 }
+
+discardBtn.addEventListener("click", () => {
+  details.hidden = true;
+  resetDetailsForm();
+});
 
 saveBtn.addEventListener("click", async () => {
   if (!firebaseReady) {
