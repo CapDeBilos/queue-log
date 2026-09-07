@@ -138,6 +138,24 @@
     pointer-events: none;
   }
 
+  .field-hint {
+    font-size: 12px;
+    color: var(--ink-faint);
+    margin: 6px 2px 0;
+    min-height: 15px;
+  }
+
+  .page-note {
+    font-size: 12px;
+    color: var(--ink-soft);
+    background: var(--paper-dim);
+    border-left: 2px solid var(--amber);
+    border-radius: 4px;
+    padding: 8px 10px;
+    margin: 14px 0 0;
+    line-height: 1.4;
+  }
+
   .new-place-row {
     display: flex;
     gap: 8px;
@@ -470,6 +488,9 @@
     <div class="select-wrap">
       <select id="locationSelect"></select>
     </div>
+    <p class="field-hint" id="locationNote"></p>
+
+    <p class="page-note">Start the timer when you join the queue — or when you pick up your first tray, if there's no line. Stop it right after you pay.</p>
 
     <div class="dial-zone">
       <button class="dial" id="dialBtn" type="button">

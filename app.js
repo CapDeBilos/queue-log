@@ -25,14 +25,14 @@ import {
 // To find coordinates: open Google Maps, right-click the spot (or
 // long-press on a phone) and tap the lat/lon numbers shown — that copies
 // them. Paste the first number as lat, the second as lon.
-const PRESET_LOCATIONS = [
-  { name: "CROUS Versailles", lat: 48.713591, lon: 2.201872 },
-  { name: "CROUS l'Experimental", lat: 48.714001, lon: 2.195787 },
+const PRESET_LOCATIONS = [  // ###########################################################################################################
+  { name: "CROUS Versailles",       lat: 48.713591, lon: 2.201872, note: "near Franprix" },
+  { name: "CROUS l'Experimental",   lat: 48.714001, lon: 2.195787, note: "near AgroParisTech - INRAE" },
 ];
 
 // The list offered in the institution dropdown at registration. Edit this
 // to match your actual list — it's the only thing to change.
-const PRESET_INSTITUTIONS = [
+const PRESET_INSTITUTIONS = [  // ###########################################################################################################
   "Ecole Polytechnique",
   "ENSTA",
   "ENSAE",
@@ -40,7 +40,7 @@ const PRESET_INSTITUTIONS = [
   "Telecom SudParis",
 ];
 
-const FIREBASE_CONFIG = {
+const FIREBASE_CONFIG = {  // ###########################################################################################################
   apiKey: "AIzaSyAzWaEr2plOZNazeMBTaP0QX3FmJ18mST8",
   authDomain: "queue-log.firebaseapp.com",
   projectId: "queue-log",
@@ -136,6 +136,7 @@ const nameError = document.getElementById("nameError");
 const nameSaveBtn = document.getElementById("nameSaveBtn");
 
 const locationSelect = document.getElementById("locationSelect");
+const locationNote = document.getElementById("locationNote");
 const connStatus = document.getElementById("connStatus");
 
 const dialBtn = document.getElementById("dialBtn");
@@ -248,11 +249,19 @@ function initLocations() {
   if (lastPlace && PRESET_LOCATIONS.some((p) => p.name === lastPlace)) {
     locationSelect.value = lastPlace;
   }
+  updateLocationNote();
 }
 
 function getSelectedLocation() {
   return PRESET_LOCATIONS.find((p) => p.name === locationSelect.value);
 }
+
+function updateLocationNote() {
+  const loc = getSelectedLocation();
+  locationNote.textContent = loc && loc.note ? loc.note : "";
+}
+
+locationSelect.addEventListener("change", updateLocationNote);
 
 // ---------------------------------------------------------------------------
 // Timer
@@ -482,7 +491,7 @@ async function loadHistory() {
     return;
   }
   try {
-    const q = query(collection(db, "queueEvents"), orderBy("startTime", "desc"));
+    const q = query(collection(db, "queueEvents"), orderBy("startTime", "desc")); // ###########################################################################################################
     const snap = await getDocs(q);
     lastLoadedEntries = snap.docs.map((d) => d.data());
     renderLedger(lastLoadedEntries);
