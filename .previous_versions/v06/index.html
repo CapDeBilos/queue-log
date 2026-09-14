@@ -355,41 +355,65 @@
   .status-line.ok { color: var(--moss); }
   .status-line.err { color: var(--brick); }
 
+  /* ---------- footer nav ---------- */
+
+  .footer-nav {
+    margin-top: auto;
+    padding-top: 24px;
+    text-align: center;
+  }
+
+  .footer-nav button {
+    background: none;
+    border: none;
+    color: var(--storm);
+    font-family: var(--font-ui);
+    font-size: 14px;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    cursor: pointer;
+  }
+
   /* ---------- top nav ---------- */
 
   .top-nav {
     display: flex;
-    gap: 8px;
-    margin-bottom: 14px;
+    justify-content: flex-end;
+    margin-bottom: 4px;
   }
 
-  .top-nav-btn {
-    flex: 1 1 0;
+  .top-nav button {
+    background: none;
+    border: none;
+    color: var(--storm);
     font-family: var(--font-ui);
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 600;
-    color: var(--ink);
-    background: var(--paper-dim);
-    border: 1px solid var(--paper-line);
-    border-radius: 10px;
-    padding: 10px 6px;
+    text-decoration: underline;
+    text-underline-offset: 2px;
     cursor: pointer;
-    text-align: center;
-    white-space: nowrap;
-  }
-
-  .top-nav-btn:active {
-    background: var(--paper-line);
+    padding: 4px;
   }
 
   /* ---------- rules ---------- */
 
-  .rules-panel {
-    margin-bottom: 14px;
+  .rules-toggle {
+    display: block;
+    background: none;
+    border: none;
+    color: var(--storm);
+    font-family: var(--font-ui);
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    cursor: pointer;
+    padding: 4px 0;
+    margin-top: 14px;
   }
 
-  .rules-panel .page-note:first-child {
-    margin-top: 0;
+  .rules-panel {
+    margin-top: 8px;
   }
 
   /* ---------- history (ledger) ---------- */
@@ -498,12 +522,8 @@
   </header>
 
   <div class="top-nav">
-    <button class="top-nav-btn" id="rulesToggle" type="button">📋 Rules</button>
-    <button class="top-nav-btn" id="leaderboardLink" type="button">🏆 Leaderboard</button>
-    <button class="top-nav-btn" id="historyLink" type="button">🕘 Recent entries</button>
+    <button id="leaderboardLink" type="button">🏆 Leaderboard</button>
   </div>
-
-  <div class="rules-panel" id="rulesPanel" hidden></div>
 
   <p class="status-line err" id="connStatus" hidden></p>
 
@@ -517,6 +537,9 @@
       <select id="locationSelect"></select>
     </div>
     <p class="field-hint" id="locationNote"></p>
+
+    <button class="rules-toggle" id="rulesToggle" type="button">📋 Show rules</button>
+    <div class="rules-panel" id="rulesPanel" hidden></div>
 
     <div class="dial-zone">
       <button class="dial" id="dialBtn" type="button">
@@ -555,6 +578,10 @@
       <button class="save-btn" id="saveBtn" type="button">Save entry</button>
       <button class="discard-btn" id="discardBtn" type="button">Discard this entry</button>
       <p class="status-line" id="statusLine"></p>
+    </div>
+
+    <div class="footer-nav">
+      <button id="historyLink" type="button">Recent entries</button>
     </div>
   </section>
 

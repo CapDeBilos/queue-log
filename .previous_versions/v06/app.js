@@ -295,6 +295,7 @@ function initRules() {
 
 rulesToggle.addEventListener("click", () => {
   rulesPanel.hidden = !rulesPanel.hidden;
+  rulesToggle.textContent = rulesPanel.hidden ? "📋 Show rules" : "📋 Hide rules";
 });
 
 // ---------------------------------------------------------------------------
