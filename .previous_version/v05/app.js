@@ -40,20 +40,6 @@ const PRESET_INSTITUTIONS = [  // ##############################################
   "Telecom SudParis",
 ];
 
-// Shown in the collapsible "Rules" panel on the main page, in order.
-// Add, remove, or reword lines here — no other change needed.
-const RULES = [     // ###########################################################################################################
-  "Start the timer when you join the queue — or when you pick up your first tray, if there's no line. Stop it right after you pay.",
-  "If the CROUS hasn't opened yet, start the timer when you arrive anyway.",
-];
-
-// Names to leave out of the Leaderboard (e.g. test accounts). Matching
-// ignores case and extra spaces, so "Test " and "test" both match "test".
-const EXCLUDED_FROM_LEADERBOARD = [     // ###########################################################################################################
-  "Teofil Voicu testing",
-  "Teofil Voicu",
-];
-
 const FIREBASE_CONFIG = {  // ###########################################################################################################
   apiKey: "AIzaSyAzWaEr2plOZNazeMBTaP0QX3FmJ18mST8",
   authDomain: "queue-log.firebaseapp.com",
@@ -177,14 +163,6 @@ const backBtn = document.getElementById("backBtn");
 const ledgerList = document.getElementById("ledgerList");
 const exportBtn = document.getElementById("exportBtn");
 
-const rulesToggle = document.getElementById("rulesToggle");
-const rulesPanel = document.getElementById("rulesPanel");
-
-const leaderboardLink = document.getElementById("leaderboardLink");
-const viewLeaderboard = document.getElementById("view-leaderboard");
-const leaderboardBackBtn = document.getElementById("leaderboardBackBtn");
-const leaderboardList = document.getElementById("leaderboardList");
-
 // ---------------------------------------------------------------------------
 // Registration: full name + institution (persisted on-device; no password,
 // no repeated login)
@@ -284,19 +262,6 @@ function updateLocationNote() {
 }
 
 locationSelect.addEventListener("change", updateLocationNote);
-
-// ---------------------------------------------------------------------------
-// Rules panel (plain expand/collapse — see RULES above)
-// ---------------------------------------------------------------------------
-
-function initRules() {
-  rulesPanel.innerHTML = RULES.map((r) => `<p class="page-note">${escapeHtml(r)}</p>`).join("");
-}
-
-rulesToggle.addEventListener("click", () => {
-  rulesPanel.hidden = !rulesPanel.hidden;
-  rulesToggle.textContent = rulesPanel.hidden ? "📋 Show rules" : "📋 Hide rules";
-});
 
 // ---------------------------------------------------------------------------
 // Timer
@@ -514,16 +479,10 @@ saveBtn.addEventListener("click", async () => {
 });
 
 // ---------------------------------------------------------------------------
-// History (ledger) view, Leaderboard, + CSV export
+// History (ledger) view + CSV export
 // ---------------------------------------------------------------------------
 
 let lastLoadedEntries = [];
-
-async function fetchAllEntries() {
-  const q = query(collection(db, "queueEvents"), orderBy("startTime", "desc"));
-  const snap = await getDocs(q);
-  return snap.docs.map((d) => d.data());
-}
 
 async function loadHistory() {
   ledgerList.innerHTML = '<p class="empty-state">Loading…</p>';
@@ -532,7 +491,9 @@ async function loadHistory() {
     return;
   }
   try {
-    lastLoadedEntries = await fetchAllEntries();
+    const q = query(collection(db, "queueEvents"), orderBy("startTime", "desc")); // ###########################################################################################################
+    const snap = await getDocs(q);
+    lastLoadedEntries = snap.docs.map((d) => d.data());
     renderLedger(lastLoadedEntries);
   } catch (e) {
     ledgerList.innerHTML = '<p class="empty-state">Could not load entries (offline?).</p>';
@@ -566,63 +527,6 @@ function escapeHtml(str) {
   const div = document.createElement("div");
   div.textContent = str;
   return div.innerHTML;
-}
-
-function normalizeName(name) {
-  return (name || "").trim().toLowerCase().replace(/\s+/g, " ");
-}
-
-async function loadLeaderboard() {
-  leaderboardList.innerHTML = '<p class="empty-state">Loading…</p>';
-  if (!firebaseReady) {
-    leaderboardList.innerHTML = '<p class="empty-state">Firebase not configured yet.</p>';
-    return;
-  }
-  try {
-    const entries = await fetchAllEntries();
-    const excluded = new Set(EXCLUDED_FROM_LEADERBOARD.map(normalizeName));
-
-    // Group by normalized name so "John Doe" / "john doe" / "John Doe "
-    // all count as the same person, while still showing a real name.
-    const counts = new Map();
-    entries.forEach((e) => {
-      const norm = normalizeName(e.username);
-      if (!norm || excluded.has(norm)) return;
-      const existing = counts.get(norm);
-      if (existing) {
-        existing.count += 1;
-      } else {
-        counts.set(norm, { displayName: (e.username || "").trim(), count: 1 });
-      }
-    });
-
-    const ranked = Array.from(counts.values())
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 5);
-
-    renderLeaderboard(ranked);
-  } catch (e) {
-    leaderboardList.innerHTML = '<p class="empty-state">Could not load leaderboard (offline?).</p>';
-  }
-}
-
-function renderLeaderboard(ranked) {
-  if (ranked.length === 0) {
-    leaderboardList.innerHTML = '<p class="empty-state">No entries yet.</p>';
-    return;
-  }
-  leaderboardList.innerHTML = "";
-  ranked.forEach((r, i) => {
-    const row = document.createElement("div");
-    row.className = "ledger-row";
-    row.innerHTML = `
-      <div class="ledger-main">
-        <span class="ledger-place">#${i + 1} ${escapeHtml(r.displayName)}</span>
-      </div>
-      <span class="ledger-duration">${r.count}</span>
-    `;
-    leaderboardList.appendChild(row);
-  });
 }
 
 exportBtn.addEventListener("click", () => {
@@ -665,17 +569,6 @@ backBtn.addEventListener("click", () => {
   viewLog.hidden = false;
 });
 
-leaderboardLink.addEventListener("click", () => {
-  viewLog.hidden = true;
-  viewLeaderboard.hidden = false;
-  loadLeaderboard();
-});
-
-leaderboardBackBtn.addEventListener("click", () => {
-  viewLeaderboard.hidden = true;
-  viewLog.hidden = false;
-});
-
 // ---------------------------------------------------------------------------
 // Boot
 // ---------------------------------------------------------------------------
@@ -702,7 +595,6 @@ window.addEventListener("offline", updateOfflineNote);
 initInstitutions();
 ensureProfile();
 initLocations();
-initRules();
 initFirebase();
 updateOfflineNote();
 
