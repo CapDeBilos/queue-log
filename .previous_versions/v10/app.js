@@ -173,8 +173,6 @@ const statusLine = document.getElementById("statusLine");
 
 const historyLink = document.getElementById("historyLink");
 const viewLog = document.getElementById("view-log");
-const viewRules = document.getElementById("view-rules");
-const rulesBackBtn = document.getElementById("rulesBackBtn");
 const viewHistory = document.getElementById("view-history");
 const backBtn = document.getElementById("backBtn");
 const ledgerList = document.getElementById("ledgerList");
@@ -689,10 +687,10 @@ let activePanel = null; // null | "rules" | "history" | "leaderboard"
 function setActivePanel(name) {
   if (activePanel === name) name = null; // tapping the open one closes it
 
-  viewRules.hidden = name !== "rules";
+  rulesPanel.hidden = name !== "rules";
   viewHistory.hidden = name !== "history";
   viewLeaderboard.hidden = name !== "leaderboard";
-  viewLog.hidden = name === "rules" || name === "history" || name === "leaderboard";
+  viewLog.hidden = name === "history" || name === "leaderboard";
 
   activePanel = name;
 
@@ -703,7 +701,6 @@ function setActivePanel(name) {
 rulesToggle.addEventListener("click", () => setActivePanel("rules"));
 historyLink.addEventListener("click", () => setActivePanel("history"));
 leaderboardLink.addEventListener("click", () => setActivePanel("leaderboard"));
-rulesBackBtn.addEventListener("click", () => setActivePanel(null));
 backBtn.addEventListener("click", () => setActivePanel(null));
 leaderboardBackBtn.addEventListener("click", () => setActivePanel(null));
 

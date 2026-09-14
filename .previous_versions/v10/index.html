@@ -386,6 +386,16 @@
     background: var(--paper-line);
   }
 
+  /* ---------- rules ---------- */
+
+  .rules-panel {
+    margin-bottom: 14px;
+  }
+
+  .rules-panel .page-note:first-child {
+    margin-top: 0;
+  }
+
   /* ---------- history (ledger) ---------- */
 
   .history-header {
@@ -514,6 +524,8 @@
     <button class="top-nav-btn" id="historyLink" type="button">🕘 Recent entries</button>
   </div>
 
+  <div class="rules-panel" id="rulesPanel" hidden></div>
+
   <p class="status-line err" id="connStatus" hidden></p>
 
   <hr class="rule">
@@ -565,15 +577,6 @@
       <button class="save-btn" id="saveBtn" type="button">Save entry</button>
       <p class="status-line" id="statusLine"></p>
     </div>
-  </section>
-
-  <!-- RULES VIEW -->
-  <section id="view-rules" hidden>
-    <div class="history-header">
-      <button class="back-btn" id="rulesBackBtn" type="button" aria-label="Back">←</button>
-      <p class="wordmark" style="font-size:17px;">Rules</p>
-    </div>
-    <div id="rulesPanel"></div>
   </section>
 
   <!-- HISTORY VIEW -->
