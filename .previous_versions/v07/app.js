@@ -43,9 +43,8 @@ const PRESET_INSTITUTIONS = [  // ##############################################
 // Shown in the collapsible "Rules" panel on the main page, in order.
 // Add, remove, or reword lines here — no other change needed.
 const RULES = [     // ###########################################################################################################
-  "Start the timer when you join the queue — or when you pick up your first tray, if there's no line.",
-  "Stop the timer right after you pay.",
-  "If the CROUS hasn't opened yet, start the timer anyway, when you arrive.",
+  "Start the timer when you join the queue — or when you pick up your first tray, if there's no line. Stop it right after you pay.",
+  "If the CROUS hasn't opened yet, start the timer when you arrive anyway.",
 ];
 
 // Names to leave out of the Leaderboard (e.g. test accounts). Matching
@@ -294,6 +293,10 @@ function initRules() {
   rulesPanel.innerHTML = RULES.map((r) => `<p class="page-note">${escapeHtml(r)}</p>`).join("");
 }
 
+rulesToggle.addEventListener("click", () => {
+  rulesPanel.hidden = !rulesPanel.hidden;
+});
+
 // ---------------------------------------------------------------------------
 // Timer
 // ---------------------------------------------------------------------------
@@ -326,7 +329,6 @@ function startTimer() {
   dialLabel.textContent = "Stop";
   dialHint.textContent = "Tap when you're done";
   details.hidden = true;
-  discardBtn.hidden = false;
   tickHandle = setInterval(tick, 250);
 }
 
@@ -446,18 +448,7 @@ function setStatus(el, text, kind) {
 }
 
 discardBtn.addEventListener("click", () => {
-  // Works whether the timer is still running or already stopped and
-  // sitting in the details form — either way, wipe it and go back to idle.
-  if (running) {
-    running = false;
-    clearInterval(tickHandle);
-    dialBtn.classList.remove("running");
-    dialLabel.textContent = "Start";
-    dialHint.textContent = "Tap when you join the queue";
-    dialTime.textContent = "0:00";
-  }
   details.hidden = true;
-  discardBtn.hidden = true;
   resetDetailsForm();
 });
 
@@ -509,7 +500,6 @@ saveBtn.addEventListener("click", async () => {
     }
     setTimeout(() => {
       details.hidden = true;
-      discardBtn.hidden = true;
       setStatus(statusLine, "");
     }, navigator.onLine ? 900 : 2400);
   } catch (e) {
@@ -663,34 +653,27 @@ function csvCell(val) {
   return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 
-// ---------------------------------------------------------------------------
-// Panel switching — Rules, Recent entries, and Leaderboard are treated as
-// one mutually-exclusive group: opening one closes whichever of the others
-// was open, and tapping the button for the one that's already open closes
-// it instead of doing nothing.
-// ---------------------------------------------------------------------------
+historyLink.addEventListener("click", () => {
+  viewLog.hidden = true;
+  viewHistory.hidden = false;
+  loadHistory();
+});
 
-let activePanel = null; // null | "rules" | "history" | "leaderboard"
+backBtn.addEventListener("click", () => {
+  viewHistory.hidden = true;
+  viewLog.hidden = false;
+});
 
-function setActivePanel(name) {
-  if (activePanel === name) name = null; // tapping the open one closes it
+leaderboardLink.addEventListener("click", () => {
+  viewLog.hidden = true;
+  viewLeaderboard.hidden = false;
+  loadLeaderboard();
+});
 
-  rulesPanel.hidden = name !== "rules";
-  viewHistory.hidden = name !== "history";
-  viewLeaderboard.hidden = name !== "leaderboard";
-  viewLog.hidden = name === "history" || name === "leaderboard";
-
-  activePanel = name;
-
-  if (name === "history") loadHistory();
-  if (name === "leaderboard") loadLeaderboard();
-}
-
-rulesToggle.addEventListener("click", () => setActivePanel("rules"));
-historyLink.addEventListener("click", () => setActivePanel("history"));
-leaderboardLink.addEventListener("click", () => setActivePanel("leaderboard"));
-backBtn.addEventListener("click", () => setActivePanel(null));
-leaderboardBackBtn.addEventListener("click", () => setActivePanel(null));
+leaderboardBackBtn.addEventListener("click", () => {
+  viewLeaderboard.hidden = true;
+  viewLog.hidden = false;
+});
 
 // ---------------------------------------------------------------------------
 // Boot
