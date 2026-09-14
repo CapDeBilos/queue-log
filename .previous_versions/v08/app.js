@@ -346,13 +346,6 @@ function stopTimer() {
   resetDetailsForm();
   details.hidden = false;
   fetchWeather();
-
-  // The details form (and the Save button) can end up below the fold on
-  // shorter phone screens — scroll it into view automatically instead of
-  // relying on the person to notice and scroll down themselves.
-  requestAnimationFrame(() => {
-    details.scrollIntoView({ behavior: "smooth", block: "start" });
-  });
 }
 
 dialBtn.addEventListener("click", () => (running ? stopTimer() : startTimer()));
