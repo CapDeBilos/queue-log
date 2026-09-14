@@ -349,14 +349,9 @@ function stopTimer() {
 
   // The details form (and the Save button) can end up below the fold on
   // shorter phone screens — scroll it into view automatically instead of
-  // relying on the person to notice and scroll down themselves. Nested
-  // rAF (rather than one) gives the browser two paint cycles to finish
-  // laying out the now-visible panel before we measure where to scroll —
-  // more reliable across mobile browsers than a single frame.
+  // relying on the person to notice and scroll down themselves.
   requestAnimationFrame(() => {
-    requestAnimationFrame(() => {
-      details.scrollIntoView({ behavior: "smooth", block: "start" });
-    });
+    details.scrollIntoView({ behavior: "smooth", block: "start" });
   });
 }
 
