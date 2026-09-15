@@ -26,7 +26,7 @@ import {
 // long-press on a phone) and tap the lat/lon numbers shown — that copies
 // them. Paste the first number as lat, the second as lon.
 const PRESET_LOCATIONS = [  // ###########################################################################################################
-  { name: "CROUS Versailles",       lat: 48.713591, lon: 2.201872, note: "near Franprix" },
+  { name: "CROUS Escoffier",       lat: 48.713591, lon: 2.201872, note: "near Franprix" },
   { name: "CROUS l'Experimental",   lat: 48.714001, lon: 2.195787, note: "near AgroParisTech - INRAE" },
 ];
 
