@@ -11,7 +11,8 @@ static HTML/CSS/JS talking directly to Firebase, and it installs to a
 phone's home screen like a regular app.
 
 *The app was written entirely by AI!* Claude Sonnet 5 (medium effort)
-free version was used, starting from a sketch made by ChatGPT.
+free version was used, starting from a sketch made by ChatGPT 
+GPT-5.6 Luna.
 
 ## What it does
 
