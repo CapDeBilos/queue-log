@@ -8,16 +8,6 @@
 //
 // SETUP: paste your own Firebase project's config into FIREBASE_CONFIG
 // below. See README.md for how to create the (free) Firebase project.
-//
-// FLOW: this is fully automatic — Start, Stop, done. There is no Save
-// button and no editable weather. The entry (place + times) is written to
-// Firestore the instant you Stop, and the weather is filled in right
-// after, automatically. If there's no connection at that moment, the
-// entry still saves immediately (Firestore's offline queue handles that),
-// and the weather reading is deferred: this device keeps a small local
-// list of "weather still needed" entries and retries them — using
-// Open-Meteo's historical hourly data for the exact time the entry was
-// logged, not "right now" — every time the app finds itself online again.
 // ============================================================================
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
@@ -25,7 +15,7 @@ import {
   getAuth, signInAnonymously, onAuthStateChanged,
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
 import {
-  getFirestore, collection, doc, addDoc, updateDoc, getDocs, query, orderBy, limit,
+  getFirestore, collection, addDoc, getDocs, query, orderBy, limit,
   serverTimestamp, enableIndexedDbPersistence,
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
@@ -77,7 +67,6 @@ const FIREBASE_CONFIG = {  // ##################################################
 const LS_USERNAME = "ql_username";
 const LS_INSTITUTION = "ql_institution";
 const LS_LAST_PLACE = "ql_last_place";
-const LS_PENDING_WEATHER = "ql_pending_weather";
 
 // ---------------------------------------------------------------------------
 // Firebase init
@@ -169,8 +158,18 @@ const dialBtn = document.getElementById("dialBtn");
 const dialTime = document.getElementById("dialTime");
 const dialLabel = document.getElementById("dialLabel");
 const dialHint = document.getElementById("dialHint");
+
+const details = document.getElementById("details");
+const waitedValue = document.getElementById("waitedValue");
+const tempValue = document.getElementById("tempValue");
+const rainChips = document.getElementById("rainChips");
+const snowChip = document.getElementById("snowChip");
+const fogChip = document.getElementById("fogChip");
+const noteToggle = document.getElementById("noteToggle");
+const notesInput = document.getElementById("notesInput");
+const saveBtn = document.getElementById("saveBtn");
 const discardBtn = document.getElementById("discardBtn");
-const saveToast = document.getElementById("saveToast");
+const statusLine = document.getElementById("statusLine");
 
 const historyLink = document.getElementById("historyLink");
 const viewLog = document.getElementById("view-log");
@@ -290,7 +289,7 @@ function updateLocationNote() {
 locationSelect.addEventListener("change", updateLocationNote);
 
 // ---------------------------------------------------------------------------
-// Rules page (plain list — see RULES above)
+// Rules panel (plain expand/collapse — see RULES above)
 // ---------------------------------------------------------------------------
 
 function initRules() {
@@ -328,8 +327,8 @@ function startTimer() {
   dialBtn.classList.add("running");
   dialLabel.textContent = "Stop";
   dialHint.textContent = "Tap when you're done";
+  details.hidden = true;
   discardBtn.hidden = false;
-  saveToast.hidden = true;
   tickHandle = setInterval(tick, 250);
 }
 
@@ -341,26 +340,29 @@ function stopTimer() {
   dialLabel.textContent = "Start";
   dialHint.textContent = "Tap when you join the queue";
   dialTime.textContent = "0:00";
-  // The entry is committed the instant Stop is pressed — there's no
-  // "review before saving" step anymore, so Cancel only makes sense
-  // while the timer is still running.
-  discardBtn.hidden = true;
 
-  finalizeEntry(startTime, endTime, locationSelect.value);
+  const waitSeconds = Math.max(0, Math.round((endTime - startTime) / 1000));
+  waitedValue.textContent = formatDuration(waitSeconds);
+  waitedValue.dataset.seconds = String(waitSeconds);
+
+  resetDetailsForm();
+  details.hidden = false;
+  fetchWeather();
+
+  // The details form (and the Save button) can end up below the fold on
+  // shorter phone screens — scroll it into view automatically instead of
+  // relying on the person to notice and scroll down themselves. Nested
+  // rAF (rather than one) gives the browser two paint cycles to finish
+  // laying out the now-visible panel before we measure where to scroll —
+  // more reliable across mobile browsers than a single frame.
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      details.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  });
 }
 
 dialBtn.addEventListener("click", () => (running ? stopTimer() : startTimer()));
-
-discardBtn.addEventListener("click", () => {
-  if (!running) return;
-  running = false;
-  clearInterval(tickHandle);
-  dialBtn.classList.remove("running");
-  dialLabel.textContent = "Start";
-  dialHint.textContent = "Tap when you join the queue";
-  dialTime.textContent = "0:00";
-  discardBtn.hidden = true;
-});
 
 // ---------------------------------------------------------------------------
 // Weather automation (Open-Meteo — free, no API key)
@@ -375,85 +377,81 @@ function weatherCodeToConditions(code) {
   return { rain: "none", snow: false, fog: false }; // clear / cloudy
 }
 
-// Right-now weather, used at the moment Stop is pressed (works when online).
-async function fetchLiveWeather(loc) {
+function selectRain(val) {
+  [...rainChips.children].forEach((c) => c.classList.toggle("on", c.dataset.val === val));
+}
+
+function setChipOn(chip, on) {
+  chip.classList.toggle("on", on);
+}
+
+async function fetchWeather() {
+  tempValue.innerHTML = '…<span class="auto-tag">auto</span>';
+
+  const loc = getSelectedLocation();
+  if (!loc) {
+    tempValue.innerHTML = 'n/a<span class="auto-tag">unknown place</span>';
+    return;
+  }
+
   try {
     const url = `https://api.open-meteo.com/v1/forecast?latitude=${loc.lat}&longitude=${loc.lon}&current_weather=true`;
     const res = await fetch(url);
     const data = await res.json();
     const cw = data.current_weather;
-    return { temperature: cw.temperature, ...weatherCodeToConditions(cw.weathercode) };
+    setTemperature(cw.temperature, "auto");
+
+    const cond = weatherCodeToConditions(cw.weathercode);
+    selectRain(cond.rain);
+    setChipOn(snowChip, cond.snow);
+    setChipOn(fogChip, cond.fog);
   } catch (e) {
-    return null;
+    tempValue.innerHTML = 'n/a<span class="auto-tag">fetch failed \u2014 tap to enter</span>';
   }
 }
 
-// Weather for a specific past hour, used to backfill entries that were
-// saved while offline. Assumes the phone's local clock and the place's
-// timezone match (fine for a single-city deployment like this one).
-async function fetchHistoricalWeather(loc, isoStart) {
-  try {
-    const d = new Date(isoStart);
-    const pad = (n) => String(n).padStart(2, "0");
-    const hourStr = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:00`;
-    const url = `https://api.open-meteo.com/v1/forecast?latitude=${loc.lat}&longitude=${loc.lon}&hourly=temperature_2m,weathercode&start_hour=${hourStr}&end_hour=${hourStr}&timezone=auto`;
-    const res = await fetch(url);
-    const data = await res.json();
-    const temp = data.hourly && data.hourly.temperature_2m && data.hourly.temperature_2m[0];
-    const code = data.hourly && data.hourly.weathercode && data.hourly.weathercode[0];
-    if (temp === undefined || code === undefined) return null;
-    return { temperature: temp, ...weatherCodeToConditions(code) };
-  } catch (e) {
-    return null;
-  }
+function setTemperature(value, tag) {
+  tempValue.innerHTML = `${Math.round(value)}\u00B0C<span class="auto-tag">${tag}</span>`;
+  tempValue.dataset.value = value;
+}
+
+tempValue.addEventListener("click", () => {
+  const current = tempValue.dataset.value !== undefined ? Math.round(tempValue.dataset.value) : "";
+  const entered = window.prompt("Temperature in \u00B0C:", current);
+  if (entered === null || entered.trim() === "") return;
+  const num = Number(entered);
+  if (Number.isNaN(num)) return;
+  setTemperature(num, "manual");
+});
+
+rainChips.addEventListener("click", (e) => {
+  const chip = e.target.closest(".chip");
+  if (!chip) return;
+  selectRain(chip.dataset.val);
+});
+snowChip.addEventListener("click", () => setChipOn(snowChip, !snowChip.classList.contains("on")));
+fogChip.addEventListener("click", () => setChipOn(fogChip, !fogChip.classList.contains("on")));
+
+noteToggle.addEventListener("click", () => {
+  notesInput.hidden = false;
+  noteToggle.hidden = true;
+  notesInput.focus();
+});
+
+function resetDetailsForm() {
+  selectRain("none");
+  setChipOn(snowChip, false);
+  setChipOn(fogChip, false);
+  notesInput.value = "";
+  notesInput.hidden = true;
+  noteToggle.hidden = false;
+  tempValue.innerHTML = '—<span class="auto-tag">auto</span>';
+  delete tempValue.dataset.value;
+  setStatus(statusLine, "");
 }
 
 // ---------------------------------------------------------------------------
-// Pending weather queue — for entries saved while offline (or while the
-// live weather fetch failed for any reason). Retried automatically every
-// time the app finds itself online.
-// ---------------------------------------------------------------------------
-
-function getPendingWeather() {
-  try {
-    return JSON.parse(localStorage.getItem(LS_PENDING_WEATHER) || "[]");
-  } catch (e) {
-    return [];
-  }
-}
-
-function addPendingWeather(docId, loc, isoStart) {
-  const list = getPendingWeather();
-  list.push({ docId, lat: loc.lat, lon: loc.lon, isoStart });
-  localStorage.setItem(LS_PENDING_WEATHER, JSON.stringify(list));
-}
-
-function removePendingWeather(docId) {
-  const list = getPendingWeather().filter((p) => p.docId !== docId);
-  localStorage.setItem(LS_PENDING_WEATHER, JSON.stringify(list));
-}
-
-async function processPendingWeather() {
-  if (!firebaseReady || !navigator.onLine) return;
-  for (const p of getPendingWeather()) {
-    const weather = await fetchHistoricalWeather({ lat: p.lat, lon: p.lon }, p.isoStart);
-    if (!weather) continue; // still no luck — leave it queued, try again later
-    try {
-      await updateDoc(doc(db, "queueEvents", p.docId), {
-        temperatureC: weather.temperature,
-        weather: { rain: weather.rain, snow: weather.snow, fog: weather.fog },
-        weatherPending: false,
-      });
-      removePendingWeather(p.docId);
-    } catch (e) {
-      // leave it queued, try again next time
-    }
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Save entry — fully automatic: the timing is written immediately, weather
-// is filled in right after (or deferred if offline).
+// Save entry
 // ---------------------------------------------------------------------------
 
 function setStatus(el, text, kind) {
@@ -461,25 +459,31 @@ function setStatus(el, text, kind) {
   el.className = "status-line" + (kind ? " " + kind : "");
 }
 
-let toastTimeout = null;
+discardBtn.addEventListener("click", () => {
+  // Works whether the timer is still running or already stopped and
+  // sitting in the details form — either way, wipe it and go back to idle.
+  if (running) {
+    running = false;
+    clearInterval(tickHandle);
+    dialBtn.classList.remove("running");
+    dialLabel.textContent = "Start";
+    dialHint.textContent = "Tap when you join the queue";
+    dialTime.textContent = "0:00";
+  }
+  details.hidden = true;
+  discardBtn.hidden = true;
+  resetDetailsForm();
+});
 
-function showToast(headline, detail, kind) {
-  clearTimeout(toastTimeout);
-  saveToast.innerHTML = `${escapeHtml(headline)}${detail ? `<span class="toast-detail">${escapeHtml(detail)}</span>` : ""}`;
-  saveToast.className = "toast" + (kind === "warn" ? " warn" : "");
-  saveToast.hidden = false;
-  toastTimeout = setTimeout(() => { saveToast.hidden = true; }, 4000);
-}
-
-async function finalizeEntry(startMs, endMs, place) {
-  const loc = PRESET_LOCATIONS.find((p) => p.name === place);
-  const start = new Date(startMs);
-  const waitSeconds = Math.max(0, Math.round((endMs - startMs) / 1000));
-
+saveBtn.addEventListener("click", async () => {
   if (!firebaseReady) {
-    showToast("Could not save this entry.", "Not connected to Firebase — see README.md.", "warn");
+    setStatus(statusLine, "Firebase not configured — see README.md", "err");
     return;
   }
+
+  const place = locationSelect.value;
+  const rainChip = rainChips.querySelector(".chip.on");
+  const start = new Date(startTime);
 
   const payload = {
     userId: currentUid,
@@ -487,49 +491,50 @@ async function finalizeEntry(startMs, endMs, place) {
     institution: getInstitution(),
     locationName: place,
     startTime: start.toISOString(),
-    endTime: new Date(endMs).toISOString(),
-    waitDurationSeconds: waitSeconds,
-    temperatureC: null,
-    weather: { rain: null, snow: null, fog: null },
-    weatherPending: true,
+    endTime: new Date(endTime).toISOString(),
+    waitDurationSeconds: Number(waitedValue.dataset.seconds || 0),
+    temperatureC: tempValue.dataset.value !== undefined ? Number(tempValue.dataset.value) : null,
+    weather: {
+      rain: rainChip ? rainChip.dataset.val : "none",
+      snow: snowChip.classList.contains("on"),
+      fog: fogChip.classList.contains("on"),
+    },
+    notes: notesInput.value.trim(),
     dayOfWeek: start.getDay(),
     hourOfDay: start.getHours(),
     createdAt: serverTimestamp(),
   };
 
-  let docRef;
+  saveBtn.disabled = true;
+  setStatus(statusLine, "Saving…");
+
   try {
-    docRef = await addDoc(collection(db, "queueEvents"), payload);
+    await addDoc(collection(db, "queueEvents"), payload);
     localStorage.setItem(LS_LAST_PLACE, place);
-  } catch (e) {
-    console.error("Failed to save entry:", e);
-    showToast("Could not save this entry.", e.message, "warn");
-    return;
-  }
-
-  if (!loc) {
-    showToast("✓ Entry saved!", `Waited ${formatDuration(waitSeconds)}`, "ok");
-    return;
-  }
-
-  const weather = await fetchLiveWeather(loc);
-
-  if (weather) {
-    try {
-      await updateDoc(docRef, {
-        temperatureC: weather.temperature,
-        weather: { rain: weather.rain, snow: weather.snow, fog: weather.fog },
-        weatherPending: false,
-      });
-    } catch (e) {
-      addPendingWeather(docRef.id, loc, start.toISOString());
+    // With offline persistence on, this resolves immediately even with no
+    // signal — the write just sits queued in the phone's local storage
+    // until a connection shows up, then Firestore syncs it automatically.
+    // navigator.onLine tells us which case we're actually in, so the
+    // message reflects reality instead of always saying the same thing.
+    if (navigator.onLine) {
+      setStatus(statusLine, "Saved", "ok");
+    } else {
+      setStatus(statusLine, "Saved on this phone — will upload once you're back online", "ok");
     }
-    showToast("✓ Entry saved!", `Waited ${formatDuration(waitSeconds)} · ${Math.round(weather.temperature)}°C`, "ok");
-  } else {
-    addPendingWeather(docRef.id, loc, start.toISOString());
-    showToast("✓ Entry saved!", "Weather will fill in once you're back online.", "ok");
+    setTimeout(() => {
+      details.hidden = true;
+      discardBtn.hidden = true;
+      setStatus(statusLine, "");
+    }, navigator.onLine ? 900 : 2400);
+  } catch (e) {
+    // A real error (not just "offline") — e.g. permission rules rejecting
+    // the write, or persistence itself failing to initialize.
+    console.error("Failed to save entry:", e);
+    setStatus(statusLine, "Could not save: " + e.message, "err");
+  } finally {
+    saveBtn.disabled = false;
   }
-}
+});
 
 // ---------------------------------------------------------------------------
 // History (ledger) view, Leaderboard, + CSV export
@@ -647,12 +652,12 @@ exportBtn.addEventListener("click", () => {
   if (lastLoadedEntries.length === 0) return;
   const cols = [
     "username", "institution", "locationName", "startTime", "endTime", "waitDurationSeconds",
-    "temperatureC", "rain", "snow", "fog", "dayOfWeek", "hourOfDay",
+    "temperatureC", "rain", "snow", "fog", "dayOfWeek", "hourOfDay", "notes",
   ];
   const rows = lastLoadedEntries.map((e) => [
     e.username, e.institution, e.locationName, e.startTime, e.endTime, e.waitDurationSeconds,
     e.temperatureC, e.weather?.rain, e.weather?.snow, e.weather?.fog,
-    e.dayOfWeek, e.hourOfDay,
+    e.dayOfWeek, e.hourOfDay, (e.notes || "").replace(/[\r\n]+/g, " "),
   ]);
   const csv = [cols.join(",")]
     .concat(rows.map((r) => r.map(csvCell).join(",")))
@@ -707,7 +712,7 @@ leaderboardBackBtn.addEventListener("click", () => setActivePanel(null));
 // ---------------------------------------------------------------------------
 
 function onAuthReady() {
-  processPendingWeather();
+  // Places are a fixed local list now, nothing to load from the network.
 }
 
 function updateOfflineNote() {
@@ -724,7 +729,6 @@ function updateOfflineNote() {
 
 window.addEventListener("online", updateOfflineNote);
 window.addEventListener("offline", updateOfflineNote);
-window.addEventListener("online", processPendingWeather);
 
 initInstitutions();
 ensureProfile();

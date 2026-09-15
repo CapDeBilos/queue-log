@@ -236,42 +236,80 @@
     text-align: center;
   }
 
-  /* ---------- save confirmation toast ---------- */
+  /* ---------- details form (after stop) ---------- */
+
+  .details {
+    margin-top: 26px;
+    animation: rise 0.28s ease;
+  }
 
   @keyframes rise {
     from { opacity: 0; transform: translateY(8px); }
     to { opacity: 1; transform: translateY(0); }
   }
 
-  .toast {
-    margin-top: 18px;
-    max-width: 260px;
-    padding: 10px 16px;
-    border-radius: 10px;
-    background: var(--moss);
-    color: var(--paper);
+  .details-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--paper-line);
+  }
+
+  .details-row .k { font-size: 14px; color: var(--ink-soft); }
+  .details-row .v {
+    font-family: var(--font-num);
+    font-size: 15px;
+    font-weight: 600;
+  }
+
+  #tempValue { cursor: pointer; }
+
+  .chip-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin: 10px 0 4px;
+  }
+
+  .chip {
     font-family: var(--font-ui);
     font-size: 14px;
-    font-weight: 700;
-    text-align: center;
-    animation: rise 0.25s ease;
+    padding: 8px 14px;
+    border-radius: 999px;
+    border: 1px solid var(--paper-line);
+    background: var(--paper-dim);
+    color: var(--ink-soft);
+    cursor: pointer;
   }
 
-  .toast.warn {
-    background: var(--amber);
-    color: var(--ink);
+  .chip.on {
+    background: var(--storm);
+    border-color: var(--storm);
+    color: var(--paper);
   }
 
-  .toast-detail {
-    display: block;
-    font-size: 12px;
-    font-weight: 500;
-    margin-top: 2px;
-    color: rgba(237, 231, 218, 0.85);
+  .auto-tag {
+    font-size: 11px;
+    color: var(--ink-faint);
+    margin-left: 6px;
   }
 
-  .toast.warn .toast-detail {
-    color: rgba(34, 48, 60, 0.75);
+  .note-toggle {
+    background: none;
+    border: none;
+    color: var(--storm);
+    font-family: var(--font-ui);
+    font-size: 14px;
+    padding: 10px 0 0;
+    cursor: pointer;
+    text-align: left;
+  }
+
+  textarea {
+    margin-top: 8px;
+    resize: vertical;
+    min-height: 60px;
   }
 
   .save-btn {
@@ -496,7 +534,36 @@
       </button>
       <p class="dial-hint" id="dialHint">Tap when you join the queue</p>
       <button class="cancel-btn" id="discardBtn" type="button" hidden>✕ Cancel entry</button>
-      <div class="toast" id="saveToast" hidden></div>
+    </div>
+
+    <!-- Details form, revealed after Stop -->
+    <div class="details" id="details" hidden>
+      <div class="details-row">
+        <span class="k">Waited</span>
+        <span class="v" id="waitedValue">0:00</span>
+      </div>
+      <div class="details-row">
+        <span class="k">Temperature</span>
+        <span class="v" id="tempValue">—<span class="auto-tag">auto</span></span>
+      </div>
+
+      <label class="field-label" style="margin-top:16px;">Rain</label>
+      <div class="chip-row" id="rainChips">
+        <button class="chip" data-val="none" type="button">None</button>
+        <button class="chip" data-val="mild" type="button">Mild</button>
+        <button class="chip" data-val="heavy" type="button">Heavy</button>
+      </div>
+
+      <div class="chip-row">
+        <button class="chip" id="snowChip" type="button">Snow</button>
+        <button class="chip" id="fogChip" type="button">Fog</button>
+      </div>
+
+      <button class="note-toggle" id="noteToggle" type="button">+ add a note</button>
+      <textarea id="notesInput" placeholder="Optional note" hidden></textarea>
+
+      <button class="save-btn" id="saveBtn" type="button">Save entry</button>
+      <p class="status-line" id="statusLine"></p>
     </div>
   </section>
 
