@@ -10,6 +10,9 @@ No app store, no native build tools, no backend server to run — it's
 static HTML/CSS/JS talking directly to Firebase, and it installs to a
 phone's home screen like a regular app.
 
+*The app was written entirely by AI!* Claude Sonnet 5 (medium effort)
+free version was used, starting from a sketch made by ChatGPT.
+
 ## What it does
 
 - **Two taps, nothing else.** Tap the dial to start, tap again to stop.

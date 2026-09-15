@@ -56,6 +56,7 @@ const RULES = [     // #########################################################
   "Start the timer when you join the queue — or when you pick up your first tray, if there's no line.",
   "Stop the timer right after you pay.",
   "If the CROUS hasn't opened yet, start the timer anyway, when you arrive.",
+  "Start the timer even if you are with other active users. This will increase data accuracy in your timeslot."
 ];
 
 // Names to leave out of the Leaderboard (e.g. test accounts). Matching
