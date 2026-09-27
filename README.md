@@ -12,7 +12,7 @@ phone's home screen like a regular app.
 
 *The app was written entirely by AI!* Claude Sonnet 5 (medium effort)
 free version was used, starting from a sketch made by ChatGPT 
-GPT-5.6 Luna.
+GPT-5.6 Luna free version.
 
 ## What it does
 
